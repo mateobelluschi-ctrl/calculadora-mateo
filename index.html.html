@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculadora Mateo</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0e1017;color:#dde3ed;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh}
+
+    /* ── Header ── */
+    .header{background:#141720;border-bottom:1px solid #1e2333;padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .header h1{font-size:.95rem;font-weight:700;color:#fff;white-space:nowrap}
+    .usd-badge{font-size:.68rem;font-weight:600;color:#6366f1;background:#1a1d2e;border-radius:5px;padding:2px 8px;letter-spacing:.04em}
+    .btn-export{padding:6px 14px;background:transparent;border:1px solid #374151;color:#94a3b8;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .btn-export:hover{border-color:#6366f1;color:#a5b4fc}
+
+    /* ── Tabs ── */
+    .tabs{display:flex;gap:4px;margin-left:auto}
+    .tab-btn{padding:7px 18px;border-radius:6px;border:1px solid #1e2333;background:transparent;color:#64748b;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+    .tab-btn.active{background:#6366f1;border-color:#6366f1;color:#fff}
+    .tab-btn:not(.active):hover{color:#dde3ed;border-color:#374151}
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+
+    /* ── Add-bond card ── */
+    .add-bar{background:#141720;border-bottom:1px solid #1e2333;padding:10px 24px;display:flex;align-items:center;gap:10px}
+    .add-bar span{font-size:.75rem;color:#4b5563;flex:1}
+    .add-card{background:#141720;border-bottom:2px solid #6366f1;padding:16px 24px;display:none}
+    .add-card.open{display:block}
+    .form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+    .field{display:flex;flex-direction:column;gap:4px}
+    .field label{font-size:.68rem;color:#4b5563;text-transform:uppercase;letter-spacing:.07em}
+    .field small{font-size:.63rem;color:#374151;margin-top:-2px}
+    .field input,.field select{background:#0e1017;border:1px solid #1e2333;color:#dde3ed;border-radius:6px;padding:6px 10px;font-size:.86rem;outline:none;transition:border-color .15s}
+    .field input:focus,.field select:focus{border-color:#6366f1}
+    .field input[type=text]{width:110px}
+    .field input[type=date]{width:140px}
+    .field input[type=number]{width:96px}
+    .field select{width:126px}
+
+    /* ── Amort schedule editor ── */
+    .amort-section{margin-top:14px;border-top:1px solid #1e2333;padding-top:12px}
+    .amort-section h3{font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+    .amort-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+    .amort-row{display:flex;gap:8px;align-items:center}
+    .amort-row input[type=date]{width:136px}
+    .amort-row input[type=number]{width:88px}
+    .amort-row .lbl{font-size:.72rem;color:#4b5563}
+    .amort-helper{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:6px;padding:10px;background:#0e1017;border-radius:7px;border:1px solid #1e2333}
+    .amort-helper .field label{color:#374151}
+
+    /* ── Buttons ── */
+    .btn-add{display:flex;align-items:center;gap:6px;padding:7px 14px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;transition:opacity .15s}
+    .btn-add:hover{opacity:.82}
+    .btn-ok{padding:7px 18px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer}
+    .btn-ok:hover{opacity:.85}
+    .btn-cancel{padding:7px 12px;background:transparent;color:#4b5563;border:1px solid #1e2333;border-radius:6px;font-size:.82rem;cursor:pointer}
+    .btn-cancel:hover{color:#dde3ed}
+    .btn-sm{padding:4px 10px;border-radius:5px;border:1px solid #1e2333;background:transparent;color:#64748b;font-size:.72rem;cursor:pointer;transition:all .12s}
+    .btn-sm:hover{color:#dde3ed;border-color:#374151}
+    .btn-sm.del{color:#374151}
+    .btn-sm.del:hover{color:#ef4444;border-color:#ef4444}
+    .form-error{color:#ef4444;font-size:.74rem;margin-top:8px;display:none}
+
+    /* ── Warning banner ── */
+    .warn-banner{background:#1a1400;border-bottom:1px solid #78350f;padding:8px 24px;font-size:.75rem;color:#fbbf24;display:flex;gap:8px;align-items:center}
+
+    /* ── Table ── */
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;min-width:760px}
+    thead tr{background:#141720;position:sticky;top:0;z-index:1}
+    th{padding:8px 12px;text-align:right;color:#374151;font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #1a1f2e;white-space:nowrap}
+    th:first-child,th:nth-child(2){text-align:left}
+    tbody tr{border-bottom:1px solid #111419;transition:background .1s}
+    tbody tr:hover{background:#141720}
+    td{padding:8px 12px;text-align:right;vertical-align:middle}
+    td:first-child,td:nth-child(2){text-align:left}
+    .c-ticker{font-weight:700;color:#a5b4fc;font-family:monospace;font-size:.88rem}
+    .c-name{color:#94a3b8;font-size:.8rem}
+    .c-anios{font-size:.8rem;color:#64748b}
+    .c-anios.soon{color:#f59e0b}
+    .c-anios.exp{color:#ef4444}
+    .c-resid{font-size:.8rem}
+    .c-cupon{color:#dde3ed}
+    .price-input{background:#0e1017;border:1px solid #1e2333;color:#dde3ed;border-radius:5px;padding:4px 7px;font-size:.86rem;text-align:right;width:80px;outline:none;transition:border-color .15s}
+    .price-input:focus{border-color:#6366f1}
+    .price-input::placeholder{color:#222840}
+    .res-main{font-size:.98rem;font-weight:700;color:#22c55e}
+    .res-main.hi{color:#f59e0b}
+    .res-main .tea{font-size:.68rem;font-weight:600;color:#6366f1;background:#1a1d2e;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+    .res-detail{font-size:.68rem;color:#374151;line-height:1.6;margin-top:2px}
+    .res-detail b{color:#4b5563}
+    .res-empty{color:#1e2333;font-size:.8rem}
+    .btn-del{background:none;border:none;color:#4b5563;cursor:pointer;font-size:.88rem;padding:2px 6px;border-radius:4px;transition:color .15s}
+    .btn-del:hover{color:#ef4444}
+
+    /* ── Empty state ── */
+    .empty{text-align:center;padding:60px 20px}
+    .empty .icon{font-size:1.8rem;margin-bottom:12px;opacity:.3}
+    .empty p{font-size:.86rem;color:#2d3a50}
+    .empty a{color:#6366f1;cursor:pointer;text-decoration:underline}
+
+    /* ── Inline edit panel for sovereign bonds ── */
+    .edit-panel{background:#0e1017;border-bottom:1px solid #1e2333;padding:14px 24px;display:none}
+    .edit-panel.open{display:block}
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Calculadora Mateo <span class="usd-badge">USD</span></h1>
+  <div class="tabs">
+    <button class="tab-btn active" id="btn-ons" onclick="switchTab('ons')">ONs Corporativas</button>
+    <button class="tab-btn" id="btn-sov" onclick="switchTab('sov')">Soberanos</button>
+    <button class="tab-btn" id="btn-lec" onclick="switchTab('lec')">LECAPs</button>
+  </div>
+  <button class="btn-export" onclick="exportarHTML()" title="Descargar HTML con todos los datos incluidos">⬇ Exportar</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  ONs CORPORATIVAS TAB                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="tab-ons" class="tab-pane active">
+  <div class="add-bar">
+    <span>ONs corporativas en USD · Ingresá cupón, vencimiento y fecha de pago</span>
+    <button class="btn-add" onclick="toggleOnsForm()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Agregar ON
+    </button>
+  </div>
+
+  <div class="add-card" id="onsAddCard">
+    <div class="form-row">
+      <div class="field"><label>Nombre / Ticker</label><input type="text" id="oNombre" placeholder="ej: YMCY" maxlength="20"/></div>
+      <div class="field"><label>Vencimiento</label><input type="date" id="oVto"/></div>
+      <div class="field"><label>Cupón TNA % (USD)</label><input type="number" id="oCupon" placeholder="ej: 5.48" step=".001" min="0"/></div>
+      <div class="field"><label>Frecuencia de pago</label>
+        <select id="oFreq">
+          <option value="12">Mensual</option><option value="4">Trimestral</option>
+          <option value="2" selected>Semestral</option><option value="1">Anual</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fecha de un pago de cupón</label>
+        <input type="date" id="oRefCupon"/>
+        <small>Cualquier fecha de pago (histórica o futura)</small>
+      </div>
+      <div class="form-row" style="gap:8px;align-self:flex-end">
+        <button class="btn-ok" onclick="addOns()">Agregar</button>
+        <button class="btn-cancel" onclick="toggleOnsForm()">Cancelar</button>
+      </div>
+    </div>
+    <div class="form-error" id="onsError"></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Nombre</th><th style="min-width:160px">Vencimiento</th><th>Próx. cupón</th>
+        <th>Años</th><th>Cupón TNA</th><th>Frec.</th>
+        <th>Precio % VN</th><th style="text-align:left;min-width:220px">TNA implícita</th><th></th>
+      </tr></thead>
+      <tbody id="onsTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  SOBERANOS TAB                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="tab-sov" class="tab-pane">
+  <div class="add-bar" style="gap:16px">
+    <span>Bonos soberanos ARG USD · Precio dirty USD · AL/GD/BA/BB → cable &nbsp;|&nbsp; AO → MEP</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0">
+      <button class="btn-sm" onclick="clearAllSovPrices()" title="Borrar todos los precios">Limpiar precios</button>
+      <button class="btn-add" onclick="toggleSovForm()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar bono
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulario agregar bono soberano/bopreal custom -->
+  <div class="add-card" id="sovAddCard">
+    <div class="form-row">
+      <div class="field">
+        <label>Ticker</label>
+        <input type="text" id="sTicker" placeholder="ej: GD46" maxlength="12" style="width:110px"/>
+      </div>
+      <div class="field">
+        <label>Frecuencia pagos</label>
+        <select id="sFreq" style="width:130px">
+          <option value="2" selected>Semestral</option>
+          <option value="4">Trimestral</option>
+          <option value="1">Anual</option>
+          <option value="12">Mensual</option>
+        </select>
+        <small style="font-size:.63rem;color:#374151;margin-top:2px">Sólo para mostrar TNA</small>
+      </div>
+    </div>
+
+    <div class="amort-section">
+      <h3>Cashflows (% del valor nominal original)</h3>
+      <p style="font-size:.68rem;color:#374151;margin-bottom:10px">Ingresá cada pago: fecha + importe como % VN. El último pago debe incluir la amortización de capital.</p>
+      <div class="amort-list" id="sovCfList"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn-sm" onclick="addSovCfRow()">+ Fila</button>
+        <button class="btn-sm" onclick="addSovCfRows5()">+ 5 filas</button>
+      </div>
+    </div>
+
+    <div class="form-error" id="sovError"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-ok" onclick="addSovCustom()">Agregar</button>
+      <button class="btn-cancel" onclick="toggleSovForm()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="sovTable">
+      <thead><tr>
+        <th>Ticker</th>
+        <th>Próx. pago</th>
+        <th>Venc.</th>
+        <th>Años</th>
+        <th style="text-align:center;border-left:1px solid #1e2333">Precio</th>
+        <th style="text-align:left;min-width:200px">TIR</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="sovTbody"></tbody>
+    </table>
+  </div>
+</div><!-- end tab-sov -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  LECAPs TAB                                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="tab-lec" class="tab-pane">
+  <div class="add-bar" style="gap:16px">
+    <span>LECAPs &amp; BONCAPs · Precio cada 100 VN · cero cupón capitalizables en pesos</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0">
+      <button class="btn-sm" onclick="clearAllLecPrices()">Limpiar precios</button>
+      <button class="btn-add" onclick="toggleLecForm()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulario agregar LECAP/BONCAP -->
+  <div class="add-card" id="lecAddCard">
+    <div class="form-row">
+      <div class="field">
+        <label>Ticker</label>
+        <input type="text" id="lTicker" placeholder="ej: S29Y6" maxlength="10" style="width:110px"/>
+      </div>
+      <div class="field">
+        <label>Vencimiento</label>
+        <input type="date" id="lVto"/>
+      </div>
+      <div class="field">
+        <label>Valor final c/100 VN</label>
+        <input type="number" id="lVf" step=".0001" min="100" placeholder="ej: 122.51" style="width:120px"/>
+        <small>Lo que paga el Tesoro al vencimiento</small>
+      </div>
+    </div>
+    <div class="form-error" id="lecError"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-ok" onclick="addLecCustom()">Agregar</button>
+      <button class="btn-cancel" onclick="toggleLecForm()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="lecTable">
+      <thead><tr>
+        <th>Ticker</th>
+        <th>Vencimiento</th>
+        <th>Días</th>
+        <th>VF c/100 VN</th>
+        <th style="text-align:center;border-left:1px solid #1e2333">Precio c/100 VN</th>
+        <th style="text-align:left;min-width:220px">TNA implícita</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="lecTbody"></tbody>
+    </table>
+  </div>
+</div><!-- end tab-lec -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  SHARED UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+const FREQ_LBL = {1:'Anual',2:'Semest.',4:'Trimes.',12:'Mensual'};
+
+function addMonths(date, m) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + m);
+  return d;
+}
+function today0() {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = d instanceof Date ? d : new Date(d);
+  return dt.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function fmtN(n, dec=2) {
+  if (n==null||!isFinite(n)) return '—';
+  return n.toLocaleString('es-AR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Next coupon strictly after today, plus the previous one (for accrual)
+function getCouponCtx(refStr, freq) {
+  const pm = 12/freq, tod = today0();
+  let d = new Date(refStr); d.setHours(0,0,0,0);
+  while (d <= tod) d = addMonths(d, pm);
+  return { next: new Date(d), last: addMonths(d, -pm) };
+}
+
+// All coupon dates strictly after today up to maturity date
+function futureCoupons(refStr, vtoStr, freq) {
+  const pm = 12/freq, tod = today0();
+  const vto = new Date(vtoStr); vto.setHours(0,0,0,0);
+  let d = new Date(refStr); d.setHours(0,0,0,0);
+  while (d <= tod) d = addMonths(d, pm);
+  const dates = [];
+  while (d <= vto) { dates.push(new Date(d)); d = addMonths(d, pm); }
+  if (!dates.length) dates.push(new Date(vto));
+  else dates[dates.length-1] = new Date(vto);
+  return dates;
+}
+
+// Core Newton-Raphson over explicit cash flows (date, amount pairs)
+// cfs = [{date, cf}], dirtyPrice = actual payment
+// Returns periodic rate r such that PV(cfs) = dirtyPrice
+function newtonRaphson(cfs, dirtyPrice, initR, freq) {
+  const nomDays = 365/freq;
+  const tod = today0();
+  let r = Math.max(0.00001, initR);
+  for (let it=0; it<400; it++) {
+    let pv=0, dpv=0;
+    for (const {date, cf} of cfs) {
+      const daysTo = Math.max(0.5, (date-tod)/86400000);
+      const exp = daysTo/nomDays;
+      const df = Math.pow(1+r, exp);
+      pv  += cf/df;
+      dpv += -exp*cf/(df*(1+r));
+    }
+    const err = pv-dirtyPrice;
+    if (Math.abs(err)<1e-11) break;
+    r -= err/dpv;
+    if (r<-0.9999) r=0.00001;
+  }
+  return r;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ONs CORPORATIVAS — unchanged logic
+// ═══════════════════════════════════════════════════════════════════════════
+let ons = [];
+try {
+  const saved = localStorage.getItem('ons_v3');
+  if (saved) {
+    ons = JSON.parse(saved);
+  } else {
+    ons = [
+      {nombre:'YMCXO', vto:'2031-09-09', cupon:7.000, freq:2, refCupon:'2026-03-28', precio:null},
+      {nombre:'YM390', vto:'2039-07-21', cupon:8.750, freq:2, refCupon:'2026-01-21', precio:null},
+      {nombre:'PLC50', vto:'2031-05-17', cupon:8.125, freq:2, refCupon:'2026-05-17', precio:null}
+    ];
+    localStorage.setItem('ons_v3', JSON.stringify(ons));
+  }
+} catch(e){}
+function saveOns(){ localStorage.setItem('ons_v3', JSON.stringify(ons)); }
+
+function calcOns(b, precio) {
+  if (precio==null) return null;
+  const tod = today0(), vto = new Date(b.vto); vto.setHours(0,0,0,0);
+  if (vto<=tod) return null;
+  const {next, last} = getCouponCtx(b.refCupon, b.freq);
+  const daysAcc = Math.max(0,(tod-last)/86400000);
+  const dailyAcc = 1000*(b.cupon/100)/365;
+  const accrued = dailyAcc*daysAcc;
+  const dirty = 1000*precio/100 + accrued;
+  const dates = futureCoupons(b.refCupon, b.vto, b.freq);
+  const cpp = 1000*(b.cupon/100)/b.freq;
+  const cfs = dates.map((date,i)=>({date, cf: cpp+(i===dates.length-1?1000:0)}));
+  const r = newtonRaphson(cfs, dirty, (b.cupon/100)/b.freq, b.freq);
+  return {
+    tna: r*b.freq*100, tea: (Math.pow(1+r,b.freq)-1)*100,
+    accrued, daysAcc:Math.round(daysAcc), dailyAcc, dirty,
+    nf: cfs.length
+  };
+}
+
+function onsResultHTML(b) {
+  if (b.precio==null) return '<span class="res-empty">—</span>';
+  const res = calcOns(b, b.precio);
+  if (!res||!isFinite(res.tna)) return '<span style="color:#ef4444;font-size:.76rem">Error</span>';
+  const cls = res.tna>10?'hi':'';
+  return `<div class="res-main ${cls}">${fmtN(res.tna)}% <span class="tea">TEA ${fmtN(res.tea)}%</span></div>
+          <div class="res-detail">
+            <b>Devengado:</b> USD ${fmtN(res.accrued,4)}
+            <span style="color:#1e2a3a">(${fmtN(res.dailyAcc,4)}/día × ${res.daysAcc}d)</span>
+            &nbsp;·&nbsp;<b>Precio sucio:</b> USD ${fmtN(res.dirty,4)}
+          </div>`;
+}
+
+function renderOns() {
+  const tod = today0();
+  const tbody = document.getElementById('onsTbody');
+  if (!ons.length) {
+    tbody.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="icon">📋</div>
+      <p>Sin ONs. <a onclick="toggleOnsForm()">+ Agregar ON</a></p></div></td></tr>`; return;
+  }
+  tbody.innerHTML = ons.map((b,i)=>{
+    const vto=new Date(b.vto), n=(vto-tod)/(365.25*86400000);
+    const exp=n<=0, soon=n>0&&n<1;
+    const anTxt=exp?'Vencido':soon?`${Math.round(n*365)} días`:n.toFixed(2);
+    const {next}=getCouponCtx(b.refCupon,b.freq);
+    return `<tr>
+      <td class="c-ticker">${esc(b.nombre)}</td>
+      <td class="c-name">${fmtDate(b.vto)}<span style="display:block;font-size:.7rem;color:#374151">ref: ${fmtDate(b.refCupon)}</span></td>
+      <td class="c-name">${fmtDate(next)}</td>
+      <td class="c-anios ${exp?'exp':soon?'soon':''}">${anTxt}</td>
+      <td class="c-cupon">${fmtN(b.cupon,3)}%</td>
+      <td style="color:#374151;font-size:.78rem">${FREQ_LBL[b.freq]}</td>
+      <td><input class="price-input" type="number" step=".01" min="0" max="300"
+        placeholder="97.50" value="${b.precio??''}"
+        oninput="setOnsPrecio(${i},this.value)"/></td>
+      <td>${onsResultHTML(b)}</td>
+      <td><button class="btn-del" onclick="delOns(${i})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleOnsForm(){
+  const c=document.getElementById('onsAddCard');
+  const open=c.classList.toggle('open');
+  if(open)document.getElementById('oNombre').focus();
+  document.getElementById('onsError').style.display='none';
+}
+function addOns(){
+  const nombre=document.getElementById('oNombre').value.trim()||'ON';
+  const vto=document.getElementById('oVto').value;
+  const cupon=parseFloat(document.getElementById('oCupon').value);
+  const freq=parseInt(document.getElementById('oFreq').value);
+  const refCupon=document.getElementById('oRefCupon').value;
+  const err=document.getElementById('onsError');
+  if(!vto){err.textContent='Ingresá fecha de vencimiento.';err.style.display='block';return;}
+  if(isNaN(cupon)||cupon<0){err.textContent='Ingresá cupón TNA válido.';err.style.display='block';return;}
+  if(!refCupon){err.textContent='Ingresá una fecha de referencia de cupón.';err.style.display='block';return;}
+  if(new Date(vto)<=today0()){err.textContent='El vencimiento debe ser futuro.';err.style.display='block';return;}
+  ons.push({nombre,vto,cupon,freq,refCupon,precio:null});
+  saveOns(); renderOns();
+  ['oNombre','oCupon','oRefCupon'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('oVto').value='';
+  document.getElementById('onsAddCard').classList.remove('open');
+  err.style.display='none';
+}
+function setOnsPrecio(i,val){
+  ons[i].precio=val!==''?parseFloat(val):null;
+  saveOns();
+  const row=document.getElementById('onsTbody').rows[i];
+  if(row) row.cells[7].innerHTML=onsResultHTML(ons[i]);
+}
+function delOns(i){ons.splice(i,1);saveOns();renderOns();}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SOBERANOS — cash-flow schedules extracted from real bond data
+//  Each entry: {d: 'YYYY-MM-DD', c: CF_as_pct_of_original_face}
+//  Input: dirty price (% of face, all-in, as quoted in USD market)
+//  Output: TEA (effective annual yield) + Modified Duration
+// ═══════════════════════════════════════════════════════════════════════════
+
+function parseLocalDate(str) {
+  // Parse YYYY-MM-DD as local time (avoids UTC shift issues)
+  const [y,m,d] = str.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+// Pre-computed cash flow schedules (% of original face value) from reestructuración 2020 data
+// AL30 = local law, GD30 = NY law — same financial structure
+const SOV_SCHEDULES = {
+  'AO27': [
+    {d:'2026-05-30',c:0.5},{d:'2026-06-30',c:0.5},{d:'2026-07-30',c:0.5},
+    {d:'2026-08-30',c:0.5},{d:'2026-09-30',c:0.5},{d:'2026-10-30',c:0.5},
+    {d:'2026-11-30',c:0.5},{d:'2026-12-30',c:0.5},{d:'2027-01-30',c:0.5},
+    {d:'2027-02-28',c:0.47},{d:'2027-03-28',c:0.5},{d:'2027-04-28',c:0.5},
+    {d:'2027-05-28',c:0.5},{d:'2027-06-28',c:0.5},{d:'2027-07-28',c:0.5},
+    {d:'2027-08-28',c:0.5},{d:'2027-09-28',c:0.5},{d:'2027-10-28',c:100.5}],
+  'AL29': [
+    {d:'2026-07-09',c:10.35},{d:'2027-01-09',c:10.30},{d:'2027-07-09',c:10.25},
+    {d:'2028-01-09',c:10.20},{d:'2028-07-09',c:10.15},{d:'2029-01-09',c:10.10},
+    {d:'2029-07-09',c:10.05}],
+  'GD29': [
+    {d:'2026-07-09',c:10.35},{d:'2027-01-09',c:10.30},{d:'2027-07-09',c:10.25},
+    {d:'2028-01-09',c:10.20},{d:'2028-07-09',c:10.15},{d:'2029-01-09',c:10.10},
+    {d:'2029-07-09',c:10.05}],
+  'AL30': [
+    {d:'2026-07-09',c:8.27},{d:'2027-01-09',c:8.24},{d:'2027-07-09',c:8.21},
+    {d:'2028-01-09',c:8.42},{d:'2028-07-09',c:8.35},{d:'2029-01-09',c:8.28},
+    {d:'2029-07-09',c:8.21},{d:'2030-01-09',c:8.14},{d:'2030-07-09',c:8.07}],
+  'GD30': [
+    {d:'2026-07-09',c:8.27},{d:'2027-01-09',c:8.24},{d:'2027-07-09',c:8.21},
+    {d:'2028-01-09',c:8.42},{d:'2028-07-09',c:8.35},{d:'2029-01-09',c:8.28},
+    {d:'2029-07-09',c:8.21},{d:'2030-01-09',c:8.14},{d:'2030-07-09',c:8.07}],
+  'AL35': [
+    {d:'2026-07-09',c:2.063},{d:'2027-01-09',c:2.063},{d:'2027-07-09',c:2.063},
+    {d:'2028-01-09',c:2.375},{d:'2028-07-09',c:2.375},{d:'2029-01-09',c:2.5},
+    {d:'2029-07-09',c:2.5},{d:'2030-01-09',c:2.5},{d:'2030-07-09',c:2.5},
+    {d:'2031-01-09',c:12.5},{d:'2031-07-09',c:12.25},{d:'2032-01-09',c:12.0},
+    {d:'2032-07-09',c:11.75},{d:'2033-01-09',c:11.5},{d:'2033-07-09',c:11.25},
+    {d:'2034-01-09',c:11.0},{d:'2034-07-09',c:10.75},{d:'2035-01-09',c:10.5},
+    {d:'2035-07-09',c:10.25}],
+  'GD35': [
+    {d:'2026-07-09',c:2.063},{d:'2027-01-09',c:2.063},{d:'2027-07-09',c:2.063},
+    {d:'2028-01-09',c:2.375},{d:'2028-07-09',c:2.375},{d:'2029-01-09',c:2.5},
+    {d:'2029-07-09',c:2.5},{d:'2030-01-09',c:2.5},{d:'2030-07-09',c:2.5},
+    {d:'2031-01-09',c:12.5},{d:'2031-07-09',c:12.25},{d:'2032-01-09',c:12.0},
+    {d:'2032-07-09',c:11.75},{d:'2033-01-09',c:11.5},{d:'2033-07-09',c:11.25},
+    {d:'2034-01-09',c:11.0},{d:'2034-07-09',c:10.75},{d:'2035-01-09',c:10.5},
+    {d:'2035-07-09',c:10.25}],
+  'AE38': [
+    {d:'2026-07-09',c:2.5},{d:'2027-01-09',c:2.5},{d:'2027-07-09',c:7.045},
+    {d:'2028-01-09',c:6.932},{d:'2028-07-09',c:6.818},{d:'2029-01-09',c:6.705},
+    {d:'2029-07-09',c:6.591},{d:'2030-01-09',c:6.477},{d:'2030-07-09',c:6.364},
+    {d:'2031-01-09',c:6.25},{d:'2031-07-09',c:6.136},{d:'2032-01-09',c:6.023},
+    {d:'2032-07-09',c:5.909},{d:'2033-01-09',c:5.795},{d:'2033-07-09',c:5.682},
+    {d:'2034-01-09',c:5.568},{d:'2034-07-09',c:5.455},{d:'2035-01-09',c:5.341},
+    {d:'2035-07-09',c:5.227},{d:'2036-01-09',c:5.114},{d:'2036-07-09',c:5.0},
+    {d:'2037-01-09',c:4.886},{d:'2037-07-09',c:4.773},{d:'2038-01-09',c:4.659}],
+  'GD38': [
+    {d:'2026-07-09',c:2.5},{d:'2027-01-09',c:2.5},{d:'2027-07-09',c:7.045},
+    {d:'2028-01-09',c:6.932},{d:'2028-07-09',c:6.818},{d:'2029-01-09',c:6.705},
+    {d:'2029-07-09',c:6.591},{d:'2030-01-09',c:6.477},{d:'2030-07-09',c:6.364},
+    {d:'2031-01-09',c:6.25},{d:'2031-07-09',c:6.136},{d:'2032-01-09',c:6.023},
+    {d:'2032-07-09',c:5.909},{d:'2033-01-09',c:5.795},{d:'2033-07-09',c:5.682},
+    {d:'2034-01-09',c:5.568},{d:'2034-07-09',c:5.455},{d:'2035-01-09',c:5.341},
+    {d:'2035-07-09',c:5.227},{d:'2036-01-09',c:5.114},{d:'2036-07-09',c:5.0},
+    {d:'2037-01-09',c:4.886},{d:'2037-07-09',c:4.773},{d:'2038-01-09',c:4.659}],
+  'AL41': [
+    {d:'2026-07-09',c:1.75},{d:'2027-01-09',c:1.75},{d:'2027-07-09',c:1.75},
+    {d:'2028-01-09',c:5.321},{d:'2028-07-09',c:5.259},{d:'2029-01-09',c:5.196},
+    {d:'2029-07-09',c:5.134},{d:'2030-01-09',c:5.661},{d:'2030-07-09',c:5.574},
+    {d:'2031-01-09',c:5.487},{d:'2031-07-09',c:5.4},{d:'2032-01-09',c:5.313},
+    {d:'2032-07-09',c:5.225},{d:'2033-01-09',c:5.138},{d:'2033-07-09',c:5.051},
+    {d:'2034-01-09',c:4.964},{d:'2034-07-09',c:4.877},{d:'2035-01-09',c:4.79},
+    {d:'2035-07-09',c:4.703},{d:'2036-01-09',c:4.616},{d:'2036-07-09',c:4.529},
+    {d:'2037-01-09',c:4.442},{d:'2037-07-09',c:4.355},{d:'2038-01-09',c:4.268},
+    {d:'2038-07-09',c:4.181},{d:'2039-01-09',c:4.094},{d:'2039-07-09',c:4.007},
+    {d:'2040-01-09',c:3.92},{d:'2040-07-09',c:3.833},{d:'2041-01-09',c:3.746},
+    {d:'2041-07-09',c:3.658}],
+  'GD41': [
+    {d:'2026-07-09',c:1.75},{d:'2027-01-09',c:1.75},{d:'2027-07-09',c:1.75},
+    {d:'2028-01-09',c:5.321},{d:'2028-07-09',c:5.259},{d:'2029-01-09',c:5.196},
+    {d:'2029-07-09',c:5.134},{d:'2030-01-09',c:5.661},{d:'2030-07-09',c:5.574},
+    {d:'2031-01-09',c:5.487},{d:'2031-07-09',c:5.4},{d:'2032-01-09',c:5.313},
+    {d:'2032-07-09',c:5.225},{d:'2033-01-09',c:5.138},{d:'2033-07-09',c:5.051},
+    {d:'2034-01-09',c:4.964},{d:'2034-07-09',c:4.877},{d:'2035-01-09',c:4.79},
+    {d:'2035-07-09',c:4.703},{d:'2036-01-09',c:4.616},{d:'2036-07-09',c:4.529},
+    {d:'2037-01-09',c:4.442},{d:'2037-07-09',c:4.355},{d:'2038-01-09',c:4.268},
+    {d:'2038-07-09',c:4.181},{d:'2039-01-09',c:4.094},{d:'2039-07-09',c:4.007},
+    {d:'2040-01-09',c:3.92},{d:'2040-07-09',c:3.833},{d:'2041-01-09',c:3.746},
+    {d:'2041-07-09',c:3.658}],
+  // Bopreales (Mar/Sep cycle)
+  'BA37D': [
+    {d:'2026-09-01',c:5.84489},{d:'2027-03-01',c:6.13256},{d:'2027-09-01',c:6.0228},
+    {d:'2028-03-01',c:6.10145},{d:'2028-09-01',c:5.98908},{d:'2029-03-01',c:6.19441},
+    {d:'2029-09-01',c:6.06891},{d:'2030-03-01',c:5.2308},{d:'2030-09-01',c:5.13143},
+    {d:'2031-03-01',c:5.53625},{d:'2031-09-01',c:5.41971},{d:'2032-03-01',c:5.48134},
+    {d:'2032-09-01',c:5.35591},{d:'2033-03-01',c:5.40015},{d:'2033-09-01',c:5.26964},
+    {d:'2034-03-01',c:5.39912},{d:'2034-09-01',c:5.26},{d:'2035-03-01',c:5.32087},
+    {d:'2035-09-01',c:5.17512},{d:'2036-03-01',c:5.29937},{d:'2036-09-01',c:5.14468},
+    {d:'2037-03-01',c:5.14999},{d:'2037-09-01',c:4.98999}],
+  'BB37D': [
+    {d:'2026-09-01',c:2.9375},{d:'2027-03-01',c:2.9375},{d:'2027-09-01',c:2.9375},
+    {d:'2028-03-01',c:2.9375},{d:'2028-09-01',c:3.6875},{d:'2029-03-01',c:3.66547},
+    {d:'2029-09-01',c:3.64344},{d:'2030-03-01',c:9.02141},{d:'2030-09-01',c:8.84075},
+    {d:'2031-03-01',c:8.86009},{d:'2031-09-01',c:8.67356},{d:'2032-03-01',c:8.48703},
+    {d:'2032-09-01',c:8.3005},{d:'2033-03-01',c:8.11397},{d:'2033-09-01',c:7.92744},
+    {d:'2034-03-01',c:7.29091},{d:'2034-09-01',c:7.11759},{d:'2035-03-01',c:6.94428},
+    {d:'2035-09-01',c:6.77097},{d:'2036-03-01',c:6.59766},{d:'2036-09-01',c:6.42434},
+    {d:'2037-03-01',c:6.33103},{d:'2037-09-01',c:6.14537}],
+};
+
+const SOV_ORDER = ['AO27','AL29','GD29','AL30','GD30','AL35','GD35','AE38','GD38','AL41','GD41','BA37D','BB37D'];
+
+// ── Bonos custom (soberanos/bopreales agregados por el usuario) ──
+let sovCustom = [];
+try { sovCustom = JSON.parse(localStorage.getItem('sovCustom_v1')||'[]'); } catch(e){}
+function saveSovCustom(){ localStorage.setItem('sovCustom_v1', JSON.stringify(sovCustom)); }
+
+function toggleSovForm() {
+  const card = document.getElementById('sovAddCard');
+  const isOpen = card.classList.toggle('open');
+  if (isOpen) {
+    document.getElementById('sTicker').value = '';
+    document.getElementById('sovError').style.display = 'none';
+    document.getElementById('sovCfList').innerHTML = '';
+    addSovCfRow(); addSovCfRow(); addSovCfRow();
+    document.getElementById('sTicker').focus();
+  }
+}
+
+function addSovCfRow(date, cf) {
+  date = date||''; cf = cf!=null?cf:'';
+  const list = document.getElementById('sovCfList');
+  const row = document.createElement('div');
+  row.className = 'amort-row';
+  row.innerHTML =
+    '<span class="lbl">Fecha</span>' +
+    '<input type="date" value="'+date+'"/>' +
+    '<span class="lbl">% VN</span>' +
+    '<input type="number" step=".001" min="0" placeholder="ej: 5.25" value="'+cf+'" style="width:96px"/>' +
+    '<button class="btn-sm del" onclick="this.parentElement.remove()">✕</button>';
+  list.appendChild(row);
+}
+
+function addSovCfRows5() { for(let i=0;i<5;i++) addSovCfRow(); }
+
+function addSovCustom() {
+  const ticker = document.getElementById('sTicker').value.trim().toUpperCase();
+  const freq   = parseInt(document.getElementById('sFreq').value);
+  const errEl  = document.getElementById('sovError');
+  errEl.style.display = 'none';
+
+  if (!ticker) { errEl.textContent='Ingresá el ticker.'; errEl.style.display='block'; return; }
+  if (SOV_SCHEDULES[ticker] || sovCustom.find(b=>b.ticker===ticker)) {
+    errEl.textContent='El ticker "'+ticker+'" ya existe.'; errEl.style.display='block'; return;
+  }
+
+  const rows = [...document.getElementById('sovCfList').querySelectorAll('.amort-row')];
+  const cfs = [];
+  for (const row of rows) {
+    const inputs = row.querySelectorAll('input');
+    const d = inputs[0].value, c = parseFloat(inputs[1].value);
+    if (!d && isNaN(c)) continue;
+    if (!d || isNaN(c) || c < 0) {
+      errEl.textContent='Cada fila debe tener fecha y % VN válido.'; errEl.style.display='block'; return;
+    }
+    cfs.push({d, c});
+  }
+  if (cfs.length < 1) { errEl.textContent='Ingresá al menos un cashflow.'; errEl.style.display='block'; return; }
+  cfs.sort((a,b)=>a.d.localeCompare(b.d));
+
+  sovCustom.push({ticker, freq, cfs});
+  saveSovCustom();
+  toggleSovForm();
+  renderSovs();
+}
+
+function delSovCustom(ticker) {
+  if (!confirm('¿Eliminar el bono "'+ticker+'"?')) return;
+  sovCustom = sovCustom.filter(b=>b.ticker!==ticker);
+  saveSovCustom();
+  delete sovPrices[ticker];
+  saveSovPrices();
+  renderSovs();
+}
+
+// Prices stored separately so CF data never changes
+let sovPrices = {};
+try { sovPrices = JSON.parse(localStorage.getItem('sovPrices_v1')||'{}'); } catch(e){}
+function saveSovPrices(){ localStorage.setItem('sovPrices_v1', JSON.stringify(sovPrices)); }
+
+function getSovFutureCFs(ticker) {
+  const tod = today0();
+  // Primero buscar en custom, luego en hardcoded
+  const custom = sovCustom.find(b=>b.ticker===ticker);
+  const sched = custom ? custom.cfs : SOV_SCHEDULES[ticker];
+  if (!sched) return [];
+  return sched
+    .map(x => ({ date: parseLocalDate(x.d), cf: x.c }))
+    .filter(x => x.date > tod);
+}
+
+function calcSov(ticker, dirtyPrice) {
+  if (dirtyPrice == null) return null;
+  const cfs = getSovFutureCFs(ticker);
+  if (!cfs.length) return null;
+  const tod = today0();
+
+  // Newton-Raphson: semi-annual periodic rate r
+  const r = newtonRaphson(cfs, dirtyPrice, 0.045, 2);
+  if (!isFinite(r) || r <= -0.9999) return null;
+
+  const tea = Math.pow(1+r, 2) - 1;
+
+  // Macaulay & Modified Duration
+  let sumPV = 0, sumTxPV = 0;
+  for (const {date, cf} of cfs) {
+    const daysTo = Math.max(0.5, (date - tod) / 86400000);
+    const t      = daysTo / 365;        // years
+    const exp    = daysTo / 182.5;      // semi-annual periods
+    const pv     = cf / Math.pow(1+r, exp);
+    sumPV   += pv;
+    sumTxPV += t * pv;
+  }
+  const macD = sumTxPV / sumPV;         // Macaulay duration (years)
+  const md   = macD / (1 + r);          // Modified Duration
+
+  return { tea: tea*100, tna: r*2*100, md, macD, nf: cfs.length };
+}
+
+function tirHTMLFor(ticker, precio) {
+  if (precio == null || precio === '' || isNaN(parseFloat(precio))) return '<span class="res-empty">—</span>';
+  const res = calcSov(ticker, parseFloat(precio));
+  if (!res || !isFinite(res.tea)) return '<span style="color:#ef4444;font-size:.72rem">Error</span>';
+  const cls = res.tea > 12 ? 'hi' : '';
+  return `<div class="res-main ${cls}">${fmtN(res.tea)}% <span class="tea">DM ${fmtN(res.md,2)}a</span></div>
+          <div class="res-detail"><b>TNA:</b> ${fmtN(res.tna)}% · <b>Px:</b> ${fmtN(parseFloat(precio),3)}</div>`;
+}
+
+function renderSovRow(ticker, isCustom) {
+  const tod = today0();
+  const cfs = getSovFutureCFs(ticker);
+  if (!cfs.length) return '';
+  const next    = cfs[0];
+  const last    = cfs[cfs.length - 1];
+  const vtoDate = last.date;
+  const n    = (vtoDate - tod) / (365.25 * 86400000);
+  const soon = n > 0 && n < 1;
+  const anTxt = soon ? Math.round(n*365)+'d' : n.toFixed(1)+'a';
+  const manPx = sovPrices[ticker];
+  const t = esc(ticker);
+  const delBtn = isCustom
+    ? '<button class="btn-del" title="Eliminar bono" onclick="delSovCustom(\''+t+'\')">🗑</button>'
+    : '<button class="btn-del" onclick="clearSovPrecio(\''+t+'\')">✕</button>';
+  return '<tr>'
+    +'<td class="c-ticker">'+t+(isCustom?'<span style="font-size:.55rem;color:#6366f1;margin-left:4px">custom</span>':'')+'</td>'
+    +'<td class="c-name" style="font-size:.75rem">'+fmtDate(next.date)+'<span style="display:block;font-size:.65rem;color:#4b5563">'+fmtN(next.cf,3)+'% VN</span></td>'
+    +'<td class="c-name" style="font-size:.75rem">'+fmtDate(vtoDate)+'</td>'
+    +'<td class="c-anios '+(soon?'soon':'')+'" style="font-size:.78rem">'+anTxt+'</td>'
+    +'<td style="border-left:1px solid #1a1f2e">'
+    +'<input class="price-input" type="number" step=".01" min="0" max="300"'
+    +' placeholder="precio" value="'+(manPx ?? '')+'"'
+    +' oninput="setSovPrecio(\''+t+'\',this.value)"/>'
+    +'</td>'
+    +'<td id="mr-'+t+'">'+tirHTMLFor(ticker, manPx)+'</td>'
+    +'<td>'+delBtn+'</td>'
+    +'</tr>';
+}
+
+function renderSovs() {
+  const tbody = document.getElementById('sovTbody');
+  const hardcoded = SOV_ORDER.map(t => renderSovRow(t, false)).join('');
+  const custom = sovCustom.map(b => renderSovRow(b.ticker, true)).join('');
+  tbody.innerHTML = hardcoded + custom;
+}
+
+function setSovPrecio(ticker, val) {
+  sovPrices[ticker] = val !== '' ? parseFloat(val) : null;
+  saveSovPrices();
+  const cell = document.getElementById('mr-' + ticker);
+  if (cell) cell.innerHTML = tirHTMLFor(ticker, sovPrices[ticker]);
+}
+
+function clearSovPrecio(ticker) {
+  delete sovPrices[ticker];
+  saveSovPrices();
+  renderSovs();
+}
+
+function clearAllSovPrices() {
+  if (!confirm('¿Borrar todos los precios manuales?')) return;
+  sovPrices = {};
+  saveSovPrices();
+  renderSovs();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  ['ons','sov','lec'].forEach(t=>{
+    document.getElementById(`tab-${t}`).classList.toggle('active',t===tab);
+    document.getElementById(`btn-${t}`).classList.toggle('active',t===tab);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.getElementById('onsAddCard').classList.remove('open');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LECAPs / BONCAPs
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Datos: pueden ser hardcodeados o guardados por el usuario
+// Usamos solo localStorage — sin hardcoded, el usuario agrega lo que quiere
+let lecData = [];
+try { lecData = JSON.parse(localStorage.getItem('lecData_v1')||'[]'); } catch(e){}
+
+let lecPrices = {};
+try { lecPrices = JSON.parse(localStorage.getItem('lecPrices_v1')||'{}'); } catch(e){}
+function saveLecPrices(){ localStorage.setItem('lecPrices_v1', JSON.stringify(lecPrices)); }
+function saveLecData(){ localStorage.setItem('lecData_v1', JSON.stringify(lecData)); }
+
+function toggleLecForm() {
+  const card = document.getElementById('lecAddCard');
+  const open = card.classList.toggle('open');
+  if (open) {
+    document.getElementById('lTicker').value = '';
+    document.getElementById('lVto').value = '';
+    document.getElementById('lVf').value = '';
+    document.getElementById('lecError').style.display = 'none';
+    document.getElementById('lTicker').focus();
+  }
+}
+
+function addLecCustom() {
+  const ticker = document.getElementById('lTicker').value.trim().toUpperCase();
+  const vto    = document.getElementById('lVto').value;
+  const vf     = parseFloat(document.getElementById('lVf').value);
+  const errEl  = document.getElementById('lecError');
+  errEl.style.display = 'none';
+  if (!ticker) { errEl.textContent='Ingresá el ticker.'; errEl.style.display='block'; return; }
+  if (lecData.find(function(l){ return l.t===ticker; })) {
+    errEl.textContent='El ticker "'+ticker+'" ya existe.'; errEl.style.display='block'; return;
+  }
+  if (!vto) { errEl.textContent='Ingresá la fecha de vencimiento.'; errEl.style.display='block'; return; }
+  if (isNaN(vf) || vf <= 0) { errEl.textContent='Ingresá el valor final válido.'; errEl.style.display='block'; return; }
+  lecData.push({ t: ticker, vto: vto, vf: vf });
+  saveLecData();
+  toggleLecForm();
+  renderLecs();
+}
+
+function delLec(ticker) {
+  lecData = lecData.filter(function(l){ return l.t !== ticker; });
+  delete lecPrices[ticker];
+  saveLecData();
+  saveLecPrices();
+  renderLecs();
+}
+
+function clearAllLecPrices() {
+  if (!confirm('¿Borrar todos los precios de LECAPs?')) return;
+  lecPrices = {}; saveLecPrices(); renderLecs();
+}
+
+function setLecPrecio(ticker, val) {
+  const v = parseFloat(val);
+  if (!isNaN(v) && v > 0) lecPrices[ticker] = v;
+  else delete lecPrices[ticker];
+  saveLecPrices();
+  const el = document.getElementById('lt-'+ticker);
+  if (el) el.innerHTML = lecTirHTML(ticker, lecPrices[ticker]);
+}
+
+function lecTirHTML(ticker, precio) {
+  const lec = lecData.find(function(l){ return l.t===ticker; });
+  if (!lec || !precio || precio <= 0) return '<span style="color:#374151;font-size:.75rem">—</span>';
+  const tod = today0();
+  const liq = new Date(tod); liq.setDate(liq.getDate() + 1); // T+1
+  const vto = parseLocalDate(lec.vto);
+  const dias = Math.round((vto - liq) / 86400000);
+  if (dias <= 0) return '<span style="color:#ef4444;font-size:.72rem">vencida</span>';
+  // TNA simple: igual que el mercado ARG para LECAP (interés lineal)
+  const tna = (lec.vf / precio - 1) * (365 / dias) * 100;
+  // TEM: equivalente mensual compuesto
+  const tem = (Math.pow(lec.vf / precio, 30.4375 / dias) - 1) * 100;
+  const color = tna >= 35 ? '#22c55e' : tna >= 28 ? '#f59e0b' : '#dde3ed';
+  return '<span style="font-weight:700;color:'+color+';font-size:.92rem">'+fmtN(tna,2)+'% TNA</span>'
+    +'<span style="font-size:.68rem;color:#4b5563;margin-left:6px">'+fmtN(tem,2)+'% TEM</span>';
+}
+
+function renderLecs() {
+  const tod = today0();
+  const liq = new Date(tod); liq.setDate(liq.getDate() + 1); // T+1
+  const tbody = document.getElementById('lecTbody');
+  if (!tbody) return;
+  const sorted = lecData.slice().sort(function(a, b) {
+    const da = Math.round((parseLocalDate(a.vto) - liq) / 86400000);
+    const db = Math.round((parseLocalDate(b.vto) - liq) / 86400000);
+    return da - db;
+  });
+  tbody.innerHTML = sorted.map(function(lec) {
+    const vto = parseLocalDate(lec.vto);
+    const dias = Math.round((vto - liq) / 86400000);
+    const precio = lecPrices[lec.t];
+    const t = esc(lec.t);
+    const diasTxt = dias <= 0
+      ? '<span style="color:#ef4444">'+dias+'d</span>'
+      : dias < 30 ? '<span style="color:#f59e0b">'+dias+'d</span>'
+      : dias+'d';
+    const inp = '<input class="price-input" type="number" step=".01" min="0" max="500"'
+      +' placeholder="precio" value="'+(precio != null ? precio : '')+'"'
+      +' oninput="setLecPrecio(\''+t+'\',this.value)"/>';
+    return '<tr>'
+      +'<td class="c-ticker">'+t+'</td>'
+      +'<td class="c-name" style="font-size:.78rem">'+fmtDate(vto)+'</td>'
+      +'<td class="c-anios">'+diasTxt+'</td>'
+      +'<td style="font-size:.82rem;color:#94a3b8">'+fmtN(lec.vf,4)+'</td>'
+      +'<td style="border-left:1px solid #1a1f2e">'+inp+'</td>'
+      +'<td id="lt-'+t+'">'+lecTirHTML(lec.t, precio)+'</td>'
+      +'<td><button class="btn-del" onclick="delLec(\''+t+'\')">🗑</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+
+// INIT
+renderOns();
+renderSovs();
+renderLecs();
+
+function exportarHTML() {
+  // Leer datos actuales del localStorage
+  var onsData    = localStorage.getItem('ons_v3')       || '[]';
+  var sovCustom  = localStorage.getItem('sovCustom_v1') || '[]';
+  var sovPrices  = localStorage.getItem('sovPrices_v1') || '{}';
+  var lecDataStr = localStorage.getItem('lecData_v1')   || '[]';
+  var lecPrices  = localStorage.getItem('lecPrices_v1') || '{}';
+
+  // Leer el HTML actual
+  var html = document.documentElement.outerHTML;
+
+  // Reemplazar las líneas de inicialización con los datos hardcodeados
+  html = html.replace(
+    /let ons = \[\];\s*try \{ ons = JSON\.parse\(localStorage\.getItem\('ons_v3'\)\|\|'\[\]'\); \} catch\(e\)\{\}/,
+    "let ons = " + onsData + ";\ntry { localStorage.setItem('ons_v3', JSON.stringify(ons)); } catch(e){}"
+  );
+  html = html.replace(
+    /let sovCustom = \[\];\s*try \{ sovCustom = JSON\.parse\(localStorage\.getItem\('sovCustom_v1'\)\|\|'\[\]'\); \} catch\(e\)\{\}/,
+    "let sovCustom = " + sovCustom + ";\ntry { localStorage.setItem('sovCustom_v1', JSON.stringify(sovCustom)); } catch(e){}"
+  );
+  html = html.replace(
+    /let sovPrices = \{\};\s*try \{ sovPrices = JSON\.parse\(localStorage\.getItem\('sovPrices_v1'\)\|\|'\{\}'\); \} catch\(e\)\{\}/,
+    "let sovPrices = " + sovPrices + ";\ntry { localStorage.setItem('sovPrices_v1', JSON.stringify(sovPrices)); } catch(e){}"
+  );
+  html = html.replace(
+    /let lecData = \[\];\s*try \{ lecData = JSON\.parse\(localStorage\.getItem\('lecData_v1'\)\|\|'\[\]'\); \} catch\(e\)\{\}/,
+    "let lecData = " + lecDataStr + ";\ntry { localStorage.setItem('lecData_v1', JSON.stringify(lecData)); } catch(e){}"
+  );
+  html = html.replace(
+    /let lecPrices = \{\};\s*try \{ lecPrices = JSON\.parse\(localStorage\.getItem\('lecPrices_v1'\)\|\|'\{\}'\); \} catch\(e\)\{\}/,
+    "let lecPrices = " + lecPrices + ";\ntry { localStorage.setItem('lecPrices_v1', JSON.stringify(lecPrices)); } catch(e){}"
+  );
+
+  // Descargar
+  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'calculadora_mateo.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+</script>
+</body>
+</html>
